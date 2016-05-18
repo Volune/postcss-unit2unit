@@ -1,0 +1,27 @@
+{
+  "name": "postcss-unit2unit",
+  "version": "0.1.0",
+  "description": "Postcss plugin, convert values to relative units",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "engines": {
+    "npm": ">=3.0.0"
+  },
+  "author": {
+    "name": "Jeremy Judeaux"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Volune/postcss-unit2unit.git"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "postcss": ">=5"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5"
+  }
+}
