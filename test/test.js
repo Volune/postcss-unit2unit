@@ -2,7 +2,13 @@ const postcss = require('postcss');
 const plugin = require('../index');
 const expect = require('chai').expect;
 
-var processor = postcss(plugin({factor: 100 / 375}));
+var processor = postcss(plugin({
+	fromUnit: 'pt',
+	toUnit: 'vw',
+	ignoreRules: ['font-size'],
+	ignoreComments: ['pt'],
+	factor: 100 / 375
+}));
 
 const test = (source, expected) => (
 	processor

@@ -6,6 +6,10 @@ Postcss plugin, convert values to relative units
 
 ```
 {
-  factor: 100 / 375
+	fromUnit: 'pt',
+	toUnit: 'vw',
+	ignoreRules: ['font-size'],
+	ignoreComments: ['pt'],
+	factor: 100 / 375
 }
 ```

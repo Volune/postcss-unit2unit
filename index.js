@@ -1,33 +1,74 @@
 'use strict';
 
 var postcss = require('postcss');
-var DEFAULT_IGNORE_RULES = ['font-size'];
+var _ = require('lodash');
 var NUMBER_REGEXP = '[\\d.]+';
+var UNIT_REGEXP = '[a-zA-Z]+';
 
 module.exports = postcss.plugin('postcss-unit2unit', function (options) {
-	options = options || {};
-	var fromUnit = options.fromUnit || 'pt';
-	var toUnit = options.toUnit || 'vw';
-	var ignoreRules = options.ignoreRules || DEFAULT_IGNORE_RULES;
-	var factor = parseFloat(options.factor);
-	var regexp = new RegExp('(' + NUMBER_REGEXP + ')' + fromUnit, 'g');
-	var rawRegexp = new RegExp(NUMBER_REGEXP + fromUnit + '\\s*(/\\*' + fromUnit + '\\*/)?', 'g');
+	options = options || [];
+	if (!Array.isArray(options)) {
+		options = [options];
+	}
+
+	var processors = options.map(function (processorOptions) {
+		var toUnit = processorOptions.toUnit;
+		var factor = parseFloat(processorOptions.factor);
+
+		return {
+			fromUnit: processorOptions.fromUnit,
+			restrictRules: processorOptions.restrictRules || [],
+			ignoreRules: processorOptions.ignoreRules || [],
+			restrictComments: processorOptions.restrictComments || [],
+			ignoreComments: processorOptions.ignoreComments || [],
+			replace: function (quantity) {
+				return (parseFloat(quantity) * factor) + toUnit;
+			}
+		};
+	});
+
+	var getProcessor = _.memoize(function (rule, fromUnit, comment) {
+		return _.find(processors, function (processor) {
+				if (fromUnit !== processor.fromUnit) {
+					return false;
+				}
+				if (processor.ignoreRules.indexOf(rule) >= 0) {
+					return false;
+				}
+				if (processor.restrictRules.length > 0 && processor.restrictRules.indexOf(rule) < 0) {
+					return false;
+				}
+				if (processor.ignoreComments.indexOf(comment) >= 0) {
+					return false;
+				}
+				if (processor.restrictComments.length > 0 && processor.restrictComments.indexOf(comment) < 0) {
+					return false;
+				}
+				// processor can be applied
+				return true;
+			}) || null;
+	}, function resolver(rule, fromUnit, comment) {
+		return rule + '+' + fromUnit + '+' + comment;
+	});
+
+	var regexp = new RegExp('(' + NUMBER_REGEXP + ')(' + UNIT_REGEXP + ')', 'g');
+	var rawRegexp = new RegExp(NUMBER_REGEXP + UNIT_REGEXP + '\\s*(?:/\\*\\s*([^*]+)\\s*\\*/)?', 'g');
 
 	return function (css) {
 		css.walkRules(function (rule) {
 			rule.walkDecls(function (decl) {
-				if (ignoreRules.indexOf(decl.prop) >= 0) {
-					return;
-				}
+				regexp.lastIndex = 0;
 				rawRegexp.lastIndex = 0;
 				var sourceValue = decl.value;
 				var sourceRawValue = decl.raws.value && decl.raws.value.raw || null;
-				decl.value = sourceValue.replace(regexp, function (match, quantity) {
+				decl.value = sourceValue.replace(regexp, function (match, quantity, fromUnit) {
 					var rawMatch = sourceRawValue ? rawRegexp.exec(sourceRawValue) : null;
-					if (rawMatch && rawMatch[1]) {
-						return match;
+					var comment = rawMatch && rawMatch[1] || "";
+					var processor = getProcessor(decl.prop, fromUnit, comment);
+					if (processor) {
+						return processor.replace(quantity);
 					} else {
-						return (parseFloat(quantity) * factor) + toUnit;
+						return match;
 					}
 				});
 			});
