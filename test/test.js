@@ -39,6 +39,13 @@ it("ignore value if comment", () => {
 	return test(source, expected);
 });
 
+it("ignore value if comment after rule", () => {
+	const source = `p { width: 375pt; /*pt*/ }`;
+	const expected = `p { width: 375pt; /*pt*/ }`;
+
+	return test(source, expected);
+});
+
 it("ignore rule", () => {
 	const source = `p { font-size: 20pt; }`;
 	const expected = `p { font-size: 20pt; }`;

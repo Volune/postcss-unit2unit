@@ -56,15 +56,22 @@ module.exports = postcss.plugin('postcss-unit2unit', function (options) {
 
 	return function (css) {
 		css.walkRules(function (rule) {
-			rule.walkDecls(function (decl) {
+			rule.nodes.forEach(function (node, index, nodes) {
+				if (node.type !== 'decl') {
+					// ignore node
+					return;
+				}
 				regexp.lastIndex = 0;
 				rawRegexp.lastIndex = 0;
-				var sourceValue = decl.value;
-				var sourceRawValue = decl.raws.value && decl.raws.value.raw || null;
-				decl.value = sourceValue.replace(regexp, function (match, quantity, fromUnit) {
+				var sourceValue = node.value;
+				var sourceRawValue = node.raws.value && node.raws.value.raw || null;
+				if (!sourceRawValue && index < nodes.length - 1 && nodes[index + 1].type == 'comment') {
+					sourceRawValue = sourceValue + ' /*' + nodes[index + 1].text + '*/';
+				}
+				node.value = sourceValue.replace(regexp, function (match, quantity, fromUnit) {
 					var rawMatch = sourceRawValue ? rawRegexp.exec(sourceRawValue) : null;
 					var comment = rawMatch && rawMatch[1] || "";
-					var processor = getProcessor(decl.prop, fromUnit, comment);
+					var processor = getProcessor(node.prop, fromUnit, comment);
 					if (processor) {
 						return processor.replace(quantity);
 					} else {
